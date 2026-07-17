@@ -7,7 +7,7 @@ Description: >-
 Parameters:
   RepositoryName:
     Type: String
-    Default: ecr-lab-app
+    Default: ecr-lab-app-v2
     Description: Name of the ECR repository.
 
 Resources:
@@ -21,7 +21,7 @@ Resources:
       # "gideondakore_ecr-lab-app" tag on every main build.
       ImageTagMutability: MUTABLE
       ImageScanningConfiguration:
-        ScanOnPush: true
+        ScanOnPush: false
       EncryptionConfiguration:
         EncryptionType: AES256
       LifecyclePolicy:
@@ -41,12 +41,12 @@ Resources:
               },
               {
                 "rulePriority": 2,
-                "description": "Keep only the 20 most recent SHA-suffixed CI images",
+                "description": "Keep only the 5 most recent SHA-suffixed CI images",
                 "selection": {
                   "tagStatus": "tagged",
                   "tagPrefixList": ["gideondakore_ecr-lab-app-"],
                   "countType": "imageCountMoreThan",
-                  "countNumber": 20
+                  "countNumber": 5
                 },
                 "action": { "type": "expire" }
               }
