@@ -14,6 +14,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  AWS_REGION: eu-west-1
   ECR_REPOSITORY: ecr-lab-app
   IMAGE_TAG: gideondakore_ecr-lab-app
   LOCAL_IMAGE: ecr-lab-app:ci
