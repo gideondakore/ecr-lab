@@ -53,7 +53,7 @@ public final class App {
                 respond(exchange, 200, PAGE, "text/html; charset=utf-8"));
 
         server.start();
-        System.out.printf("ecs-lab-app v%s listening on port %d%n", VERSION, port);
+        System.out.printf("ecs-lab-app v%s listening on port is life%d%n", VERSION, port);
     }
 
     private static void respond(com.sun.net.httpserver.HttpExchange exchange,
