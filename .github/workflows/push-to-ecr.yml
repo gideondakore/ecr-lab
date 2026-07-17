@@ -1,0 +1,76 @@
+name: Build and Push Docker Image to ECR
+
+on:
+  push:
+    branches: [main]
+
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: ecr-push
+  cancel-in-progress: false
+
+env:
+  ECR_REPOSITORY: ecr-lab-app
+  IMAGE_TAG: gideondakore_ecr-lab-app
+
+jobs:
+  build-and-push:
+    runs-on: ${{ matrix.os }}
+    environment: ecr-lab
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6.1.0
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: github-actions-${{ github.run_id }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker image
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+        run: |
+          set -euo pipefail
+          docker build \
+            --tag "${REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" \
+            --tag "${REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}-${GITHUB_SHA::7}" \
+            .
+
+      - name: Smoke test image
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+        run: |
+          set -euo pipefail
+          docker run -d --rm --name smoke -p 8080:8080 \
+            "${REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          for i in $(seq 1 10); do
+            if curl -sf http://localhost:8080/health; then break; fi
+            [ "$i" -eq 10 ] && { docker logs smoke; exit 1; }
+            sleep 2
+          done
+          docker stop smoke
+
+      - name: Push image to ECR
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+        run: |
+          set -euo pipefail
+          docker push "${REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          docker push "${REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}-${GITHUB_SHA::7}"
+          echo "Pushed ${REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" >> "$GITHUB_STEP_SUMMARY"
